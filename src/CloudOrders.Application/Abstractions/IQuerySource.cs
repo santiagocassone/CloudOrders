@@ -4,5 +4,5 @@ namespace CloudOrders.Application.Abstractions;
 
 public interface IQuerySource
 {
-    IQueryable<Order> Orders { get; }
+    IQueryable<Order> OrdersQuery { get; }
 }
