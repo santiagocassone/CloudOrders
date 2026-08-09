@@ -1,11 +1,13 @@
 using CloudOrders.Api.Contracts;
 using CloudOrders.Application.Orders;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CloudOrders.Api.Controllers;
 
 [ApiController]
 [Route("api/orders")]
+[Authorize]
 public class OrdersController : ControllerBase
 {
     private readonly PlaceOrderHandler _placeOrderHandler;
