@@ -12,6 +12,7 @@ public sealed class CloudOrdersDbContext : DbContext, IQuerySource
     }
 
     public DbSet<Order> Orders => Set<Order>();
+    public DbSet<User> Users => Set<User>();
     IQueryable<Order> IQuerySource.Orders => Orders;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

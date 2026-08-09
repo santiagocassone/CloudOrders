@@ -9,9 +9,11 @@ namespace CloudOrders.Api.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly PlaceOrderHandler _placeOrderHandler;
-    public OrdersController(PlaceOrderHandler placeOrderHandler)
+    private readonly GetOrderByIdHandler _getOrderByIdHandler;
+    public OrdersController(PlaceOrderHandler placeOrderHandler, GetOrderByIdHandler getOrderByIdHandler)
     {
         _placeOrderHandler = placeOrderHandler;
+        _getOrderByIdHandler = getOrderByIdHandler;
     }
 
     [HttpPost]
@@ -21,6 +23,19 @@ public class OrdersController : ControllerBase
 
         var placedOrderGuid = await _placeOrderHandler.HandleAsync(placeOrderCommand, cancellationToken);
 
-        return Created($"/api/orders/{placedOrderGuid}", new { id = placedOrderGuid });
+        return CreatedAtAction(nameof(GetOrderById), new { id = placedOrderGuid }, new { id = placedOrderGuid });
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult> GetOrderById(Guid id, CancellationToken cancellationToken)
+    {
+        var orderDto = await _getOrderByIdHandler.HandleAsync(new GetOrderByIdQuery(id), cancellationToken);
+
+        if (orderDto is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(orderDto);
     }
 }
