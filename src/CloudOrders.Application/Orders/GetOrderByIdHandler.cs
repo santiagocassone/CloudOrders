@@ -1,5 +1,4 @@
 using CloudOrders.Application.Abstractions;
-using Microsoft.EntityFrameworkCore;
 
 namespace CloudOrders.Application.Orders;
 
@@ -14,7 +13,7 @@ public sealed class GetOrderByIdHandler
 
     public async Task<OrderDto?> HandleAsync(GetOrderByIdQuery query, CancellationToken cancellationToken)
     {
-        var order = await _querySource.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == query.OrderId, cancellationToken);
+        var order = await _querySource.GetOrderByIdAsync(query.OrderId, cancellationToken);
 
         if (order is null)
         {

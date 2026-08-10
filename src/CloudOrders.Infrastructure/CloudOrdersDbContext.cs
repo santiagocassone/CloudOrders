@@ -13,7 +13,8 @@ public sealed class CloudOrdersDbContext : DbContext, IQuerySource
 
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<User> Users => Set<User>();
-    IQueryable<Order> IQuerySource.Orders => Orders;
+    async Task<Order?> IQuerySource.GetOrderByIdAsync(Guid id, CancellationToken cancellationToken)
+        => await Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

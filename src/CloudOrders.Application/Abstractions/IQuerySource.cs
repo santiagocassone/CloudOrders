@@ -4,5 +4,5 @@ namespace CloudOrders.Application.Abstractions;
 
 public interface IQuerySource
 {
-    IQueryable<Order> Orders { get; }
+    Task<Order?> GetOrderByIdAsync(Guid id, CancellationToken cancellationToken);
 }
