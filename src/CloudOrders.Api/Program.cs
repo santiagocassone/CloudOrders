@@ -23,7 +23,12 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<CloudOrdersDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("CloudOrdersDb")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("CloudOrdersDb"),
+        sqlOptions => sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null)));
 
 builder.Services.AddScoped<IQuerySource, CloudOrdersDbContext>();
 builder.Services.AddScoped<IOrderRepository, SqlOrderRepository>();
@@ -61,6 +66,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddHealthChecks()
+    .AddSqlServer(builder.Configuration.GetConnectionString("CloudOrdersDb")!);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -89,6 +97,8 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health");
 app.MapControllers();
 
 app.Run();
