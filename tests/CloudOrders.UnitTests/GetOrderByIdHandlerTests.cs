@@ -16,7 +16,11 @@ public class GetOrderByIdHandlerTests
         var repoMock = new Mock<IQuerySource>();
         var getOrderByIdHandler = new GetOrderByIdHandler(repoMock.Object);
 
-        var order1 = Order.Create(Guid.NewGuid(), 100m);
+        var order1 = Order.Create(Guid.NewGuid(),
+        new List<OrderItem>
+        {
+            OrderItem.Create(Guid.NewGuid(), 2, 50m)
+        });
         var orders = new List<Order> { order1 }.AsQueryable();
         var createOrderRequest = new GetOrderByIdQuery(order1.Id);
         repoMock.Setup(m => m.GetOrderByIdAsync(order1.Id, It.IsAny<CancellationToken>())).ReturnsAsync(order1);

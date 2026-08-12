@@ -21,7 +21,8 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult> PlaceOrder(CreateOrderRequest createOrderRequest, CancellationToken cancellationToken)
     {
-        var placeOrderCommand = new PlaceOrderCommand(createOrderRequest.CustomerId, createOrderRequest.Total);
+
+        var placeOrderCommand = new PlaceOrderCommand(createOrderRequest.CustomerId, createOrderRequest.Items.Select(item => new PlaceOrderItem(item.ProductId, item.Quantity, item.UnitPrice)).ToList());
 
         var placedOrderGuid = await _placeOrderHandler.HandleAsync(placeOrderCommand, cancellationToken);
 

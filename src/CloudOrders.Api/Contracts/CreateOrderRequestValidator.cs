@@ -7,6 +7,7 @@ public sealed class CreateOrderRequestValidator : AbstractValidator<CreateOrderR
     public CreateOrderRequestValidator()
     {
         RuleFor(x => x.CustomerId).NotEqual(Guid.Empty);
-        RuleFor(x => x.Total).GreaterThan(0);
+        RuleFor(x => x.Items).NotEmpty();
+        RuleForEach(x => x.Items).SetValidator(new CreateOrderItemRequestValidator());
     }
 }

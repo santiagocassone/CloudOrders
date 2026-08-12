@@ -1,3 +1,3 @@
 namespace CloudOrders.Api.Contracts;
 
-public sealed record CreateOrderRequest(Guid CustomerId, decimal Total);
+public sealed record CreateOrderRequest(Guid CustomerId, IReadOnlyCollection<CreateOrderItemRequest> Items);
