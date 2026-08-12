@@ -42,7 +42,7 @@ namespace CloudOrders.UnitTests
             var loginCommand = new LoginCommand("fakeuser", "password");
 
             repoUserMock.Setup(r => r.GetByEmailAsync(loginCommand.Email, It.IsAny<CancellationToken>()))
-                .ReturnsAsync((User)null);
+                .ReturnsAsync((User?)null);
 
             //Act
             var resultToken = await loginHandler.HandleAsync(loginCommand, CancellationToken.None);

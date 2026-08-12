@@ -1,4 +1,5 @@
-using System.Text;
+using Azure.Identity;
+using Azure.Messaging.ServiceBus;
 using CloudOrders.Api.Contracts;
 using CloudOrders.Api.Middleware;
 using CloudOrders.Application.Abstractions;
@@ -7,19 +8,22 @@ using CloudOrders.Application.Orders;
 using CloudOrders.Domain;
 using CloudOrders.Infrastructure;
 using CloudOrders.Infrastructure.Auth;
+using CloudOrders.Infrastructure.Messaging.ServiceBus;
 using CloudOrders.Infrastructure.Persistence;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 
+// Add services to the container.
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<CloudOrdersDbContext>(options =>
@@ -44,6 +48,8 @@ builder.Services.AddProblemDetails();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateOrderRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 
+
+// Configure JWT authentication
 builder.Services.AddOptions<JwtOptions>()
     .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
     .ValidateDataAnnotations()
@@ -66,6 +72,35 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+
+// Configure Azure Service Bus
+builder.Services.AddOptions<ServiceBusOptions>()
+    .Bind(builder.Configuration.GetSection(ServiceBusOptions.SectionName))
+    .Validate(options => !string.IsNullOrWhiteSpace(options.FullyQualifiedNamespace),
+        "ServiceBus:FullyQualifiedNamespace is required.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.OrderPlacedQueue),
+        "ServiceBus:OrderPlacedQueue is required.")
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<ServiceBusClient>(sp =>
+{
+    var serviceBusOptions = sp.GetRequiredService<IOptions<ServiceBusOptions>>().Value;
+    return new ServiceBusClient(serviceBusOptions.FullyQualifiedNamespace, builder.Environment.IsDevelopment() ? new AzureCliCredential() : new ManagedIdentityCredential(new ManagedIdentityCredentialOptions()));
+});
+
+
+
+builder.Services.AddSingleton<ServiceBusSender>(sp =>
+{
+    var serviceBusOptions = sp.GetRequiredService<IOptions<ServiceBusOptions>>().Value;
+    var serviceBusClient = sp.GetRequiredService<ServiceBusClient>();
+    return serviceBusClient.CreateSender(serviceBusOptions.OrderPlacedQueue);
+});
+
+builder.Services.AddSingleton<IOrderEventPublisher, AzureServiceBusOrderEventPublisher>();
+
+
+// Add health checks for the SQL Server database
 builder.Services.AddHealthChecks()
     .AddSqlServer(builder.Configuration.GetConnectionString("CloudOrdersDb")!);
 
@@ -85,9 +120,8 @@ if (app.Environment.IsDevelopment())
     }
 }
 
+
 // Configure the HTTP request pipeline.
-
-
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

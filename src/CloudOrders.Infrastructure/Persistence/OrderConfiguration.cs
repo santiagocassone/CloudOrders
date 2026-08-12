@@ -12,9 +12,6 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.HasKey(o => o.Id);
 
-        builder.Property(o => o.Total)
-            .HasColumnType("decimal(18,2)");
-
         builder.Property(o => o.Status)
             .HasConversion<string>()
             .HasMaxLength(20);
@@ -24,5 +21,26 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Property(o => o.CreatedAt)
             .IsRequired();
+
+        builder.OwnsMany(o => o.Items, items =>
+        {
+            items.ToTable("OrderItems");
+
+            items.WithOwner()
+                .HasForeignKey("OrderId");
+
+            items.Property<Guid>("Id");
+            items.HasKey("Id");
+
+            items.Property(i => i.ProductId)
+                .IsRequired();
+
+            items.Property(i => i.Quantity)
+                .IsRequired();
+
+            items.Property(i => i.UnitPrice)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+        });
     }
 }
