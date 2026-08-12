@@ -17,7 +17,9 @@ Use Service Bus without putting a secret in source control:
 ```powershell
 $env:ServiceBus__UseInMemory = "false"
 $env:ServiceBus__ConnectionString = "<connection-string-from-Key-Vault-or-managed-configuration>"
-$env:ServiceBus__TopicName = "orders"
+$env:ServiceBus__OrderEventsTopicName = "order-events"
+$env:ServiceBus__InventorySubscriptionName = "inventory-sub"
+$env:ServiceBus__FulfillmentTopicName = "order-fulfillment-events"
 dotnet run --project Inventory
 ```
 
@@ -26,6 +28,29 @@ Run tests:
 ```powershell
 dotnet test Inventory/Inventory.Tests
 ```
+
+## Azure deployment configuration (Inventory)
+
+For Azure App Service / Container Apps, set these app settings for the Inventory service:
+
+- `ServiceBus__UseInMemory=false`
+- `ServiceBus__ConnectionString=<from Key Vault or secure app setting>`
+- `ServiceBus__OrderEventsTopicName=order-events`
+- `ServiceBus__InventorySubscriptionName=inventory-sub`
+- `ServiceBus__FulfillmentTopicName=order-fulfillment-events`
+
+With this configuration, Inventory:
+
+- consumes `OrderPlaced` messages from `order-events` + `inventory-sub`
+- publishes `StockReserved` / `StockRejected` to `order-fulfillment-events`
+
+## Pending issues owned by CloudOrders (Santiago)
+
+The following integration gaps are outside Inventory ownership and remain pending in CloudOrders:
+
+1. `CONTRACTS.md` defines `OrderPlaced` with `CustomerId`, `Total`, `Lines`, and `OccurredAt`, but CloudOrders currently publishes a reduced payload (`OrderId`, `Items`).
+2. CloudOrders still needs a consumer/subscription flow for fulfillment events (`StockReserved` / `StockRejected`) from `order-fulfillment-events` + `api-sub`.
+3. CloudOrders production settings must include Service Bus keys (`ServiceBus:FullyQualifiedNamespace`, `ServiceBus:OrderPlacedQueue` or equivalent topic config) so startup validation passes in Azure.
 
 ## Service Bus first
 

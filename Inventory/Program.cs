@@ -6,7 +6,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddHealthChecks();
-builder.Services.Configure<ServiceBusOptions>(builder.Configuration.GetSection(ServiceBusOptions.SectionName));
+builder.Services.AddOptions<ServiceBusOptions>()
+    .Bind(builder.Configuration.GetSection(ServiceBusOptions.SectionName))
+    .Validate(options => options.UseInMemory || !string.IsNullOrWhiteSpace(options.ConnectionString),
+        "ServiceBus:ConnectionString is required when UseInMemory is false.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.FulfillmentTopicName),
+        "ServiceBus:FulfillmentTopicName is required.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.OrderEventsTopicName),
+        "ServiceBus:OrderEventsTopicName is required.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.InventorySubscriptionName),
+        "ServiceBus:InventorySubscriptionName is required.")
+    .ValidateOnStart();
 builder.Services.AddScoped<OrderSubmissionService>();
 
 var useInMemory = builder.Configuration.GetValue<bool?>($"{ServiceBusOptions.SectionName}:UseInMemory") ?? builder.Environment.IsDevelopment();
@@ -18,6 +28,7 @@ else
 {
     builder.Services.AddSingleton<IServiceBusMessageSender, ServiceBusMessageSender>();
     builder.Services.AddSingleton<IOrderEventsPublisher, ServiceBusOrderEventsPublisher>();
+    builder.Services.AddHostedService<ServiceBusOrderPlacedConsumer>();
 }
 
 var app = builder.Build();
