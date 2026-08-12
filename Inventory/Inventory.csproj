@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Inventory</AssemblyName>
+    <RootNamespace>Inventory</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Inventory.Tests\**" />
+    <Content Remove="Inventory.Tests\**" />
+    <EmbeddedResource Remove="Inventory.Tests\**" />
+    <None Remove="Inventory.Tests\**" />
+  </ItemGroup>
+</Project>

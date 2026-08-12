@@ -9,4 +9,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/CloudOrders.UnitTests/CloudOrders.UnitTests.csproj" />
   </Folder>
+  <Project Path="Inventory/Inventory.csproj" />
+  <Project Path="Inventory/Inventory.Tests/Inventory.Tests.csproj" />
 </Solution>
