@@ -41,7 +41,9 @@ builder.Services.AddScoped<GetOrderByIdHandler>();
 builder.Services.AddScoped<ITokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IUserRepository, SqlUserRepository>();
 builder.Services.AddScoped<LoginHandler>();
-
+builder.Services.AddScoped<IProcessedMessageRepository, SqlProcessedMessageRepository>();
+builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<CloudOrdersDbContext>());
+builder.Services.AddScoped<StockResultsHandler>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
@@ -80,6 +82,8 @@ builder.Services.AddOptions<ServiceBusOptions>()
         "ServiceBus:FullyQualifiedNamespace is required.")
     .Validate(options => !string.IsNullOrWhiteSpace(options.OrderPlacedQueue),
         "ServiceBus:OrderPlacedQueue is required.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.StockResultsQueue),
+        "ServiceBus:StockResultsQueue is required.")
     .ValidateOnStart();
 
 builder.Services.AddSingleton<ServiceBusClient>(sp =>
