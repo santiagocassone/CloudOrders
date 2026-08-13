@@ -11,8 +11,7 @@ variables:
   buildConfiguration: 'Release'
   azureSubscription: 'cloudorders-azure-connection'
   webAppName: 'cloudorders-api-escasan'
-  keyVaultName: 'cloudorders-kv-escasan'
-  sqlConnectionSecretName: 'CloudOrdersSqlConnection'
+  azureSqlConnectionString: 'Server=tcp:cloudorders-sql-escasan.database.windows.net,1433;Initial Catalog=CloudOrdersDb;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;'
 
 stages:
 - stage: Build
@@ -61,20 +60,15 @@ stages:
       runOnce:
         deploy:
           steps:
-          - task: AzureKeyVault@2
+          - task: AzureCLI@2
+            displayName: 'Apply Azure SQL migrations'
             inputs:
               azureSubscription: $(azureSubscription)
-              KeyVaultName: $(keyVaultName)
-              SecretsFilter: $(sqlConnectionSecretName)
-
-          - script: test -n "$DB_CONNECTION_STRING" && echo "Connection string loaded" || (echo "Connection string missing" && exit 1)
-            displayName: 'Validate SQL connection secret'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: 'chmod +x "$(Pipeline.Workspace)/migrations/efbundle" && "$(Pipeline.Workspace)/migrations/efbundle" --connection "$DB_CONNECTION_STRING"'
             env:
-              DB_CONNECTION_STRING: $(CloudOrdersSqlConnection)
-          - script: chmod +x "$(Pipeline.Workspace)/migrations/efbundle" && "$(Pipeline.Workspace)/migrations/efbundle" --connection "$DB_CONNECTION_STRING"
-            displayName: 'Apply Azure SQL migrations'
-            env:
-              DB_CONNECTION_STRING: $(sqlConnectionSecretName)
+              DB_CONNECTION_STRING: $(azureSqlConnectionString)
 
 - stage: Deploy
   dependsOn: Migrate
