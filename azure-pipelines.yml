@@ -67,10 +67,14 @@ stages:
               KeyVaultName: $(keyVaultName)
               SecretsFilter: $(sqlConnectionSecretName)
 
+          - script: test -n "$DB_CONNECTION_STRING" && echo "Connection string loaded" || (echo "Connection string missing" && exit 1)
+            displayName: 'Validate SQL connection secret'
+            env:
+              DB_CONNECTION_STRING: $(CloudOrdersSqlConnection)
           - script: chmod +x "$(Pipeline.Workspace)/migrations/efbundle" && "$(Pipeline.Workspace)/migrations/efbundle" --connection "$DB_CONNECTION_STRING"
             displayName: 'Apply Azure SQL migrations'
             env:
-              DB_CONNECTION_STRING: $($(sqlConnectionSecretName))
+              DB_CONNECTION_STRING: $(sqlConnectionSecretName)
 
 - stage: Deploy
   dependsOn: Migrate
