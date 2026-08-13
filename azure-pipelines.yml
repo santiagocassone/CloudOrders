@@ -39,8 +39,8 @@ stages:
     - script: dotnet tool install --global dotnet-ef --version "10.0.10"
       displayName: 'Install EF Core tools'
 
-    - script: dotnet restore src/CloudOrders.Infrastructure/CloudOrders.Infrastructure.csproj --runtime linux-x64
-      displayName: 'Restore Infrastructure for linux-x64'
+    - script: dotnet restore --runtime linux-x64
+      displayName: 'Restore solution for linux-x64'
 
     - script: dotnet ef migrations bundle --project src/CloudOrders.Infrastructure --startup-project src/CloudOrders.Api --configuration $(buildConfiguration) --runtime linux-x64 --output $(Build.ArtifactStagingDirectory)/migrations/efbundle
       displayName: 'Build migration bundle'
