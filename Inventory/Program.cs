@@ -1,5 +1,6 @@
 using Inventory.Application;
 using Inventory.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,10 @@ builder.Services.AddOptions<ServiceBusOptions>()
     .Validate(options => !string.IsNullOrWhiteSpace(options.InventorySubscriptionName),
         "ServiceBus:InventorySubscriptionName is required.")
     .ValidateOnStart();
+
+builder.Services.AddDbContext<InventoryDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("InventoryDb")));
+
 builder.Services.AddScoped<OrderSubmissionService>();
 
 var useInMemory = builder.Configuration.GetValue<bool?>($"{ServiceBusOptions.SectionName}:UseInMemory") ?? builder.Environment.IsDevelopment();
@@ -32,6 +37,8 @@ else
 }
 
 var app = builder.Build();
+await InventoryDbInitializer.SeedAsync(app);
+
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
@@ -39,14 +46,8 @@ app.MapHealthChecks("/health");
 
 app.MapGet("/api/inventory/{productId:guid}/stock", async (Guid productId, OrderSubmissionService service, CancellationToken cancellationToken) =>
 {
-    var availableQuantity = await service.GetAvailableStockAsync(productId, cancellationToken);
-    return Results.Ok(new
-    {
-        ProductId = productId,
-        AvailableQuantity = availableQuantity,
-        ReservedQuantity = 0,
-        UpdatedAt = DateTime.UtcNow
-    });
+    var stock = await service.GetStockAsync(productId, cancellationToken);
+    return Results.Ok(stock);
 });
 
 app.MapPost("/api/inventory/reserve", async (ReserveStockRequest request, OrderSubmissionService service, CancellationToken cancellationToken) =>
