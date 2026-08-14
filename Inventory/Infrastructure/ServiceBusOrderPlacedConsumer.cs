@@ -34,7 +34,7 @@ public sealed class ServiceBusOrderPlacedConsumer : IHostedService, IAsyncDispos
     {
         var settings = _options.Value;
 
-        _processor = _client.CreateProcessor(settings.OrderEventsTopicName, settings.InventorySubscriptionName, new ServiceBusProcessorOptions
+        _processor = _client.CreateProcessor(settings.OrderPlacedQueueName, new ServiceBusProcessorOptions
         {
             AutoCompleteMessages = false,
             MaxConcurrentCalls = 1

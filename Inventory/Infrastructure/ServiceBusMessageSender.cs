@@ -17,7 +17,7 @@ public sealed class ServiceBusMessageSender : IServiceBusMessageSender, IAsyncDi
         }
 
         _client = new ServiceBusClient(settings.ConnectionString);
-        _sender = _client.CreateSender(settings.FulfillmentTopicName);
+        _sender = _client.CreateSender(settings.StockResultsQueueName);
     }
 
     public Task SendAsync(ServiceBusMessage message, CancellationToken cancellationToken) =>

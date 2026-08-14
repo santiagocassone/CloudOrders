@@ -11,12 +11,10 @@ builder.Services.AddOptions<ServiceBusOptions>()
     .Bind(builder.Configuration.GetSection(ServiceBusOptions.SectionName))
     .Validate(options => options.UseInMemory || !string.IsNullOrWhiteSpace(options.ConnectionString),
         "ServiceBus:ConnectionString is required when UseInMemory is false.")
-    .Validate(options => !string.IsNullOrWhiteSpace(options.FulfillmentTopicName),
-        "ServiceBus:FulfillmentTopicName is required.")
-    .Validate(options => !string.IsNullOrWhiteSpace(options.OrderEventsTopicName),
-        "ServiceBus:OrderEventsTopicName is required.")
-    .Validate(options => !string.IsNullOrWhiteSpace(options.InventorySubscriptionName),
-        "ServiceBus:InventorySubscriptionName is required.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.StockResultsQueueName),
+        "ServiceBus:StockResultsQueueName is required.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.OrderPlacedQueueName),
+        "ServiceBus:OrderPlacedQueueName is required.")
     .ValidateOnStart();
 
 builder.Services.AddDbContext<InventoryDbContext>(options =>

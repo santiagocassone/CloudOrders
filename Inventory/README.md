@@ -1,6 +1,6 @@
 # Service Bus Interview Prep
 
-A deliberately small .NET 10 API for practicing senior-level Azure and backend interview topics. Its working feature is simple: `POST /orders` publishes an `OrderSubmitted` event. Development uses an in-memory publisher; production uses an Azure Service Bus topic.
+A deliberately small .NET 10 API for practicing senior-level Azure and backend interview topics. Its working feature is simple: inventory reservation events are published to Azure Service Bus. Development uses an in-memory publisher; production uses Azure Service Bus queues.
 
 ## Run it
 
@@ -17,9 +17,8 @@ Use Service Bus without putting a secret in source control:
 ```powershell
 $env:ServiceBus__UseInMemory = "false"
 $env:ServiceBus__ConnectionString = "<connection-string-from-Key-Vault-or-managed-configuration>"
-$env:ServiceBus__OrderEventsTopicName = "order-events"
-$env:ServiceBus__InventorySubscriptionName = "inventory-sub"
-$env:ServiceBus__FulfillmentTopicName = "order-fulfillment-events"
+$env:ServiceBus__OrderPlacedQueueName = "order-placed"
+$env:ServiceBus__StockResultsQueueName = "stock-results"
 dotnet run --project Inventory
 ```
 
@@ -35,28 +34,27 @@ For Azure App Service / Container Apps, set these app settings for the Inventory
 
 - `ServiceBus__UseInMemory=false`
 - `ServiceBus__ConnectionString=<from Key Vault or secure app setting>`
-- `ServiceBus__OrderEventsTopicName=order-events`
-- `ServiceBus__InventorySubscriptionName=inventory-sub`
-- `ServiceBus__FulfillmentTopicName=order-fulfillment-events`
+- `ServiceBus__OrderPlacedQueueName=order-placed`
+- `ServiceBus__StockResultsQueueName=stock-results`
 
 With this configuration, Inventory:
 
-- consumes `OrderPlaced` messages from `order-events` + `inventory-sub`
-- publishes `StockReserved` / `StockRejected` to `order-fulfillment-events`
+- consumes `OrderPlaced` messages from `order-placed`
+- publishes `StockReserved` / `StockRejected` to `stock-results`
 
 ## Pending issues owned by CloudOrders (Santiago)
 
 The following integration gaps are outside Inventory ownership and remain pending in CloudOrders:
 
 1. `CONTRACTS.md` defines `OrderPlaced` with `CustomerId`, `Total`, `Lines`, and `OccurredAt`, but CloudOrders currently publishes a reduced payload (`OrderId`, `Items`).
-2. CloudOrders still needs a consumer/subscription flow for fulfillment events (`StockReserved` / `StockRejected`) from `order-fulfillment-events` + `api-sub`.
-3. CloudOrders production settings must include Service Bus keys (`ServiceBus:FullyQualifiedNamespace`, `ServiceBus:OrderPlacedQueue` or equivalent topic config) so startup validation passes in Azure.
+2. CloudOrders still needs a consumer flow for fulfillment events (`StockReserved` / `StockRejected`) from queue `stock-results`.
+3. CloudOrders production settings must include Service Bus keys (`ServiceBus:FullyQualifiedNamespace`, `ServiceBus:OrderPlacedQueue`) so startup validation passes in Azure.
 
 ## Service Bus first
 
 `OrderSubmissionService` owns business intent. `IOrderEventsPublisher` is the application boundary. `ServiceBusOrderEventsPublisher` maps the event to a message with an idempotency-friendly `MessageId`, `CorrelationId`, event type, subject, and JSON content type. `ServiceBusMessageSender` is the Azure SDK adapter and is asynchronously disposed with its client. This separation makes the business logic testable without an Azure connection.
 
-For a production consumer, use a subscription with duplicate detection, retry/dead-letter policy, idempotent handling keyed by `MessageId`, and a separately deployed `ServiceBusProcessor` or Azure Function. Do not perform irreversible work before a message is safely published; use an outbox when a database transaction and publication must be atomic.
+For a production consumer, use queue-based duplicate detection, retry/dead-letter policy, idempotent handling keyed by `MessageId`, and a separately deployed `ServiceBusProcessor` or Azure Function. Do not perform irreversible work before a message is safely published; use an outbox when a database transaction and publication must be atomic.
 
 ## Tests and mocking
 
@@ -88,7 +86,7 @@ The test pyramid for the next iteration is: domain/service unit tests, API plus 
 ## Deliberate next exercises
 
 1. Add a SQL outbox and a background publisher, then test the failure window.
-2. Add a subscription consumer with idempotency and dead-letter handling.
+2. Add a queue consumer with idempotency and dead-letter handling.
 3. Add JWT validation through Microsoft Entra ID and an authorization policy.
 4. Add OpenTelemetry/Application Insights plus a load test and endpoint benchmark.
 5. Compare an Azure Function consumer with a hosted worker using measured throughput and cost.

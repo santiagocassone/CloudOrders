@@ -6,7 +6,6 @@ public sealed class ServiceBusOptions
 
     public bool UseInMemory { get; init; } = true;
     public string? ConnectionString { get; init; }
-    public string FulfillmentTopicName { get; init; } = "order-fulfillment-events";
-    public string OrderEventsTopicName { get; init; } = "order-events";
-    public string InventorySubscriptionName { get; init; } = "inventory-sub";
+    public string StockResultsQueueName { get; init; } = "stock-results";
+    public string OrderPlacedQueueName { get; init; } = "order-placed";
 }
