@@ -1,3 +1,9 @@
 namespace Inventory.Application;
 
-public sealed record InventoryItem(Guid ProductId, int AvailableQuantity, int ReservedQuantity, DateTime UpdatedAt);
+public sealed class InventoryItem
+{
+    public Guid ProductId { get; set; }
+    public int AvailableQuantity { get; set; }
+    public int ReservedQuantity { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}

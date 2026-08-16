@@ -9,7 +9,8 @@ public sealed class ServiceBusOrderEventsPublisher(IServiceBusMessageSender send
     {
         var message = new ServiceBusMessage(BinaryData.FromObjectAsJson(reserved))
         {
-            MessageId = reserved.OrderId.ToString(),
+            MessageId = Guid.NewGuid().ToString("N"),
+            CorrelationId = reserved.OrderId.ToString(),
             Subject = nameof(StockReserved),
             ContentType = "application/json"
         };
@@ -22,7 +23,8 @@ public sealed class ServiceBusOrderEventsPublisher(IServiceBusMessageSender send
     {
         var message = new ServiceBusMessage(BinaryData.FromObjectAsJson(rejected))
         {
-            MessageId = rejected.OrderId.ToString(),
+            MessageId = Guid.NewGuid().ToString("N"),
+            CorrelationId = rejected.OrderId.ToString(),
             Subject = nameof(StockRejected),
             ContentType = "application/json"
         };
