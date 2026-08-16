@@ -15,12 +15,9 @@ public sealed class AzureServiceBusOrderEventPublisher : IOrderEventPublisher
     public async Task PublishOrderPlacedAsync(OrderPlaced message, CancellationToken cancellationToken)
     {
         var json = JsonSerializer.Serialize(message);
-        var orderId = message.OrderId.ToString();
 
         var serviceBusMessage = new ServiceBusMessage(json)
         {
-            MessageId = orderId,
-            CorrelationId = orderId,
             ContentType = "application/json"
         };
 

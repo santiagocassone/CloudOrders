@@ -22,7 +22,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\CloudOrders.Application\CloudOrders.Application.csproj" />
     <ProjectReference Include="..\..\src\CloudOrders.Domain\CloudOrders.Domain.csproj" />
-    <ProjectReference Include="..\..\src\CloudOrders.Infrastructure\CloudOrders.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
