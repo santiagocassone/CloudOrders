@@ -40,6 +40,7 @@ await InventoryDbInitializer.SeedAsync(app);
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
+app.MapGet("/", () => Results.Text("Inventory API is running.", "text/plain"));
 app.MapHealthChecks("/health");
 
 app.MapGet("/api/inventory/{productId:guid}/stock", async (Guid productId, OrderSubmissionService service, CancellationToken cancellationToken) =>
