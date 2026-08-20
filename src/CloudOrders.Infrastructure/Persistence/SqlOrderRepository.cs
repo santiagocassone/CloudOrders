@@ -16,8 +16,6 @@ public sealed class SqlOrderRepository : IOrderRepository
     public async Task AddAsync(Order order, CancellationToken cancellationToken)
     {
         await _dbContext.Orders.AddAsync(order, cancellationToken);
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<Order?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -25,8 +23,8 @@ public sealed class SqlOrderRepository : IOrderRepository
         return await _dbContext.Orders.FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
     }
 
-    public async Task UpdateOrderAsync(Order order, CancellationToken cancellationToken)
+    public async Task ReloadAsync(Order order, CancellationToken cancellationToken)
     {
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.Entry(order).ReloadAsync(cancellationToken);
     }
 }

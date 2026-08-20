@@ -54,7 +54,7 @@ namespace CloudOrders.UnitTests
         }
 
         [Fact]
-        public async Task HandleStockResultsAsync_WhenOrderIdNotFound_ThrowInvalidOperationException()
+        public async Task HandleStockResultsAsync_WhenOrderNotFound_ThrowsOrderNotFoundException()
         {
             //Arrange
             var repoMock = new Mock<IOrderRepository>();
@@ -69,7 +69,7 @@ namespace CloudOrders.UnitTests
             repoMock.Setup(r => r.GetByIdAsync(stockResult.OrderId, It.IsAny<CancellationToken>())).ReturnsAsync((Order?)null);
 
             //Act & Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => stockResultsHandler.HandleStockResultAsync(messageId, stockResult, CancellationToken.None));
+            await Assert.ThrowsAsync<OrderNotFoundException>(() => stockResultsHandler.HandleStockResultAsync(messageId, stockResult, CancellationToken.None));
 
             processedMessageRepoMock.Verify(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
             repoMock.Verify(r => r.GetByIdAsync(stockResult.OrderId, It.IsAny<CancellationToken>()), Times.Once);
@@ -98,7 +98,7 @@ namespace CloudOrders.UnitTests
 
             processedMessageRepoMock.Verify(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
             repoMock.Verify(r => r.GetByIdAsync(order.Id, CancellationToken.None), Times.Once);
-            processedMessageRepoMock.Verify(r => r.AddAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),Times.Never);
+            processedMessageRepoMock.Verify(r => r.AddAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),Times.Once);
             unitOfWorkMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
         }
 
@@ -165,7 +165,7 @@ namespace CloudOrders.UnitTests
         }
 
         [Fact]
-        public async Task HandleStockResultsAsync_WhenSameResultTwice_ShouldNotChangeStatus()
+        public async Task HandleStockResultsAsync_WhenSameMessageIdReceivedTwice_ProcessesOnlyOnce()
         {
             //Arrange
             var repoMock = new Mock<IOrderRepository>();
@@ -194,6 +194,164 @@ namespace CloudOrders.UnitTests
             repoMock.Verify(r => r.GetByIdAsync(order.Id, CancellationToken.None), Times.Once);
             processedMessageRepoMock.Verify(r => r.AddAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
             unitOfWorkMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task HandleStockResultsAsync_WhenReserveAConfirmedOrder_NoOp()
+        {
+            //Arrange
+            var repoMock = new Mock<IOrderRepository>();
+            var unitOfWorkMock = new Mock<IUnitOfWork>();
+            var processedMessageRepoMock = new Mock<IProcessedMessageRepository>();
+            var stockResultsHandler = new StockResultsHandler(repoMock.Object, unitOfWorkMock.Object, processedMessageRepoMock.Object);
+
+            var customerId = Guid.NewGuid();
+            var productId = Guid.NewGuid();
+            var messageId = Guid.NewGuid().ToString();
+            var order = Order.Create(customerId, new List<OrderItem> { OrderItem.Create(productId, 1, 10m) });
+            order.Confirm();
+            var stockResult = new StockResult(order.Id, StockResultStatus.Confirmed, null);
+
+            processedMessageRepoMock.Setup(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            repoMock.Setup(r => r.GetByIdAsync(order.Id, CancellationToken.None)).ReturnsAsync(order);
+            unitOfWorkMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+            //Act
+            await stockResultsHandler.HandleStockResultAsync(messageId, stockResult, CancellationToken.None);
+
+            //Assert
+            Assert.Equal(OrderStatus.Confirmed, order.Status);
+
+            processedMessageRepoMock.Verify(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
+            repoMock.Verify(r => r.GetByIdAsync(order.Id, CancellationToken.None), Times.Once);
+            processedMessageRepoMock.Verify(r => r.AddAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
+            unitOfWorkMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task HandleStockResultsAsync_WhenRejectARejectedOrder_NoOp()
+        {
+            //Arrange
+            var repoMock = new Mock<IOrderRepository>();
+            var unitOfWorkMock = new Mock<IUnitOfWork>();
+            var processedMessageRepoMock = new Mock<IProcessedMessageRepository>();
+            var stockResultsHandler = new StockResultsHandler(repoMock.Object, unitOfWorkMock.Object, processedMessageRepoMock.Object);
+
+            var customerId = Guid.NewGuid();
+            var productId = Guid.NewGuid();
+            var messageId = Guid.NewGuid().ToString();
+            var order = Order.Create(customerId, new List<OrderItem> { OrderItem.Create(productId, 1, 10m) });
+            order.Reject();
+            var stockResult = new StockResult(order.Id, StockResultStatus.Rejected, null);
+
+            processedMessageRepoMock.Setup(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            repoMock.Setup(r => r.GetByIdAsync(order.Id, CancellationToken.None)).ReturnsAsync(order);
+            unitOfWorkMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+            //Act
+            await stockResultsHandler.HandleStockResultAsync(messageId, stockResult, CancellationToken.None);
+
+            //Assert
+            Assert.Equal(OrderStatus.Rejected, order.Status);
+
+            processedMessageRepoMock.Verify(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
+            repoMock.Verify(r => r.GetByIdAsync(order.Id, CancellationToken.None), Times.Once);
+            processedMessageRepoMock.Verify(r => r.AddAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
+            unitOfWorkMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task HandleStockResultsAsync_WhenRejectAConfirmedOrder_ThrowInvalidOrderStateTransition()
+        {
+            //Arrange
+            var repoMock = new Mock<IOrderRepository>();
+            var unitOfWorkMock = new Mock<IUnitOfWork>();
+            var processedMessageRepoMock = new Mock<IProcessedMessageRepository>();
+            var stockResultsHandler = new StockResultsHandler(repoMock.Object, unitOfWorkMock.Object, processedMessageRepoMock.Object);
+
+            var customerId = Guid.NewGuid();
+            var productId = Guid.NewGuid();
+            var messageId = Guid.NewGuid().ToString();
+            var order = Order.Create(customerId, new List<OrderItem> { OrderItem.Create(productId, 1, 10m) });
+            order.Confirm();
+            var stockResult = new StockResult(order.Id, StockResultStatus.Rejected, null);
+
+            processedMessageRepoMock.Setup(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            repoMock.Setup(r => r.GetByIdAsync(order.Id, CancellationToken.None)).ReturnsAsync(order);
+            unitOfWorkMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+            //Act + Assert
+            await Assert.ThrowsAsync<InvalidOrderStateTransitionException>(() => stockResultsHandler.HandleStockResultAsync(messageId, stockResult, CancellationToken.None));
+            Assert.Equal(OrderStatus.Confirmed, order.Status);
+
+            processedMessageRepoMock.Verify(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
+            repoMock.Verify(r => r.GetByIdAsync(order.Id, CancellationToken.None), Times.Once);
+            processedMessageRepoMock.Verify(r => r.AddAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
+            unitOfWorkMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task HandleStockResultsAsync_WhenReserveARejectedOrder_ThrowInvalidOrderStateTransition()
+        {
+            //Arrange
+            var repoMock = new Mock<IOrderRepository>();
+            var unitOfWorkMock = new Mock<IUnitOfWork>();
+            var processedMessageRepoMock = new Mock<IProcessedMessageRepository>();
+            var stockResultsHandler = new StockResultsHandler(repoMock.Object, unitOfWorkMock.Object, processedMessageRepoMock.Object);
+
+            var customerId = Guid.NewGuid();
+            var productId = Guid.NewGuid();
+            var messageId = Guid.NewGuid().ToString();
+            var order = Order.Create(customerId, new List<OrderItem> { OrderItem.Create(productId, 1, 10m) });
+            order.Reject();
+            var stockResult = new StockResult(order.Id, StockResultStatus.Confirmed, null);
+
+            processedMessageRepoMock.Setup(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            repoMock.Setup(r => r.GetByIdAsync(order.Id, CancellationToken.None)).ReturnsAsync(order);
+            unitOfWorkMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+            //Act + Assert
+            await Assert.ThrowsAsync<InvalidOrderStateTransitionException>(() => stockResultsHandler.HandleStockResultAsync(messageId, stockResult, CancellationToken.None));
+            Assert.Equal(OrderStatus.Rejected, order.Status);
+
+            processedMessageRepoMock.Verify(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
+            repoMock.Verify(r => r.GetByIdAsync(order.Id, CancellationToken.None), Times.Once);
+            processedMessageRepoMock.Verify(r => r.AddAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
+            unitOfWorkMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task HandleStockResultsAsync_WhenConcurrencyConflict_ReloadsAndRetries()
+        {
+            //Arrange
+            var repoMock = new Mock<IOrderRepository>();
+            var unitOfWorkMock = new Mock<IUnitOfWork>();
+            var processedMessageRepoMock = new Mock<IProcessedMessageRepository>();
+            var stockResultsHandler = new StockResultsHandler(repoMock.Object, unitOfWorkMock.Object, processedMessageRepoMock.Object);
+
+            var customerId = Guid.NewGuid();
+            var productId = Guid.NewGuid();
+            var messageId = Guid.NewGuid().ToString();
+            var order = Order.Create(customerId, new List<OrderItem> { OrderItem.Create(productId, 1, 10m) });
+            var stockResult = new StockResult(order.Id, StockResultStatus.Confirmed, null);
+
+            processedMessageRepoMock.Setup(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            repoMock.Setup(r => r.GetByIdAsync(order.Id, CancellationToken.None)).ReturnsAsync(order);
+            unitOfWorkMock.SetupSequence(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new ConcurrencyConflictException("Concurrency conflict detected.")).ReturnsAsync(1);
+            repoMock.Setup(r => r.ReloadAsync(order, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+
+            //Act
+            await stockResultsHandler.HandleStockResultAsync(messageId, stockResult, CancellationToken.None);
+
+            //Assert
+            Assert.Equal(OrderStatus.Confirmed, order.Status);
+
+            processedMessageRepoMock.Verify(r => r.ExistsAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
+            repoMock.Verify(r => r.GetByIdAsync(order.Id, CancellationToken.None), Times.Once);
+            processedMessageRepoMock.Verify(r => r.AddAsync(messageId, It.IsAny<CancellationToken>()), Times.Once);
+            unitOfWorkMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+            repoMock.Verify(r => r.ReloadAsync(order, It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

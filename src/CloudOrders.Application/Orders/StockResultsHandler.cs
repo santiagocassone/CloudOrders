@@ -32,29 +32,52 @@ namespace CloudOrders.Application.Orders
 
             if (order is null)
             {
-                throw new InvalidOperationException($"Order with ID {stockResult.OrderId} not found.");
-            }
-
-            switch (stockResult.Status)
-            {
-                case StockResultStatus.Confirmed:
-                    order.Confirm();
-                    break;
-
-                case StockResultStatus.Rejected:
-                    order.Reject();
-                    break;
-
-                default:
-                    throw new ArgumentOutOfRangeException(
-                        nameof(stockResult.Status),
-                        stockResult.Status,
-                        "Unsupported stock result status.");
+                throw new OrderNotFoundException(stockResult.OrderId);
             }
 
             await _processedMessageRepository.AddAsync(messageId, cancellationToken);
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            ApplyStockResult(order, stockResult);
+
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (ConcurrencyConflictException)
+            {
+                await _orderRepository.ReloadAsync(order, cancellationToken);
+
+                ApplyStockResult(order, stockResult);
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        private static void ApplyStockResult(Order order, StockResult stockResult)
+        {
+            switch (stockResult.Status)
+            {
+                case StockResultStatus.Confirmed:
+                    if (order.Status == OrderStatus.Confirmed)
+                    {
+                        return;
+                    }
+
+                    order.Confirm();
+                    break;
+
+                case StockResultStatus.Rejected:
+                    if (order.Status == OrderStatus.Rejected)
+                    {
+                        return;
+                    }
+
+                    order.Reject();
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(stockResult.Status), stockResult.Status, "Unsupported stock result status.");
+            }            
         }
     }
 }

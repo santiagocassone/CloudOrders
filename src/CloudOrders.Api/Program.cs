@@ -42,10 +42,13 @@ builder.Services.AddScoped<ITokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IUserRepository, SqlUserRepository>();
 builder.Services.AddScoped<LoginHandler>();
 builder.Services.AddScoped<IProcessedMessageRepository, SqlProcessedMessageRepository>();
-builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<CloudOrdersDbContext>());
+builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<StockResultsHandler>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+builder.Services.AddSingleton<StockResultMessageMapper>();
+builder.Services.AddHostedService<StockResultsHostedService>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<CreateOrderRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
@@ -102,6 +105,18 @@ builder.Services.AddSingleton<ServiceBusSender>(sp =>
 });
 
 builder.Services.AddSingleton<IOrderEventPublisher, AzureServiceBusOrderEventPublisher>();
+
+builder.Services.AddSingleton<ServiceBusProcessor>(sp =>
+{
+    var options = sp.GetRequiredService<IOptions<ServiceBusOptions>>().Value;
+    var client = sp.GetRequiredService<ServiceBusClient>();
+
+    return client.CreateProcessor(options.StockResultsQueue, new ServiceBusProcessorOptions
+    {
+        AutoCompleteMessages = false,
+        MaxConcurrentCalls = options.StockResultsMaxConcurrentCalls
+    });
+});
 
 
 // Add health checks for the SQL Server database

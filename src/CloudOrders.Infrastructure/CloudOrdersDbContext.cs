@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CloudOrders.Infrastructure;
 
-public sealed class CloudOrdersDbContext : DbContext, IQuerySource, IUnitOfWork
+public sealed class CloudOrdersDbContext : DbContext, IQuerySource
 {
     public CloudOrdersDbContext(DbContextOptions<CloudOrdersDbContext> options) : base(options) { }
 

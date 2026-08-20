@@ -9,6 +9,7 @@ public class Order
     public DateTime CreatedAt { get; private set; }
     private readonly List<OrderItem> _items = [];
     public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
+    public byte[] Version { get; private set; } = Array.Empty<byte>();
 
     private Order()
     {
@@ -48,7 +49,7 @@ public class Order
     {
         if (this.Status != OrderStatus.Pending)
         {
-            throw new InvalidOperationException("Only pending orders can be confirmed");
+            throw new InvalidOrderStateTransitionException("Only pending orders can be confirmed");
         }
 
         this.Status = OrderStatus.Confirmed;
@@ -56,9 +57,9 @@ public class Order
 
     public void Reject()
     {
-        if (this.Status == OrderStatus.Confirmed)
+        if (this.Status != OrderStatus.Pending)
         {
-            throw new InvalidOperationException("Confirmed orders cannot be rejected");
+            throw new InvalidOrderStateTransitionException("Only pending orders can be rejected");
         }
 
         this.Status = OrderStatus.Rejected;

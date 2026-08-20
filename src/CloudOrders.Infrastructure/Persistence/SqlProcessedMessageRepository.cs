@@ -2,6 +2,8 @@
 using CloudOrders.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
+namespace CloudOrders.Infrastructure.Persistence;
+
 public sealed class SqlProcessedMessageRepository : IProcessedMessageRepository
 {
     private readonly CloudOrdersDbContext _dbContext;

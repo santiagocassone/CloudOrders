@@ -14,12 +14,10 @@ public class PlaceOrderHandlerTests
         //Arrange
         var repoMock = new Mock<IOrderRepository>();
         var eventPublisherMock = new Mock<IOrderEventPublisher>();
-        var placeOrderHandler = new PlaceOrderHandler(repoMock.Object, eventPublisherMock.Object);
+        var unitOfWorkMock = new Mock<IUnitOfWork>();
+        var placeOrderHandler = new PlaceOrderHandler(repoMock.Object, eventPublisherMock.Object, unitOfWorkMock.Object);
         var productId = Guid.NewGuid();
-        var placeOrderCommand = new PlaceOrderCommand(Guid.NewGuid(), new List<PlaceOrderItem>
-        {
-            new PlaceOrderItem(productId, 2, 50m)
-        });
+        var placeOrderCommand = new PlaceOrderCommand(Guid.NewGuid(), new List<PlaceOrderItem>() { new PlaceOrderItem(productId, 2, 50m) });
 
         //Act
         var result = await placeOrderHandler.HandleAsync(placeOrderCommand, CancellationToken.None);
@@ -27,6 +25,7 @@ public class PlaceOrderHandlerTests
         //Assert
         Assert.NotEqual(Guid.Empty, result);
         repoMock.Verify(r => r.AddAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         eventPublisherMock.Verify(
             p => p.PublishOrderPlacedAsync(
                 It.Is<OrderPlaced>(m =>
@@ -44,12 +43,14 @@ public class PlaceOrderHandlerTests
         //Arrange
         var repoMock = new Mock<IOrderRepository>();
         var eventPublisherMock = new Mock<IOrderEventPublisher>();
-        var placeOrderHandler = new PlaceOrderHandler(repoMock.Object, eventPublisherMock.Object);
+        var unitOfWorkMock = new Mock<IUnitOfWork>();
+        var placeOrderHandler = new PlaceOrderHandler(repoMock.Object, eventPublisherMock.Object, unitOfWorkMock.Object);
         var placeOrderCommand = new PlaceOrderCommand(Guid.NewGuid(), Array.Empty<PlaceOrderItem>());
 
         //Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(() => placeOrderHandler.HandleAsync(placeOrderCommand, CancellationToken.None));
         repoMock.Verify(r => r.AddAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()), Times.Never);
+        unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
         eventPublisherMock.Verify(
             p => p.PublishOrderPlacedAsync(It.IsAny<OrderPlaced>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -61,7 +62,8 @@ public class PlaceOrderHandlerTests
         //Arrange
         var repoMock = new Mock<IOrderRepository>();
         var eventPublisherMock = new Mock<IOrderEventPublisher>();
-        var placeOrderHandler = new PlaceOrderHandler(repoMock.Object, eventPublisherMock.Object);
+        var unitOfWorkMock = new Mock<IUnitOfWork>();
+        var placeOrderHandler = new PlaceOrderHandler(repoMock.Object, eventPublisherMock.Object, unitOfWorkMock.Object);
         var placeOrderCommand = new PlaceOrderCommand(Guid.NewGuid(), new List<PlaceOrderItem>
         {
             new PlaceOrderItem(Guid.NewGuid(), 2, 50m)
@@ -72,6 +74,7 @@ public class PlaceOrderHandlerTests
         //Act & Assert
         await Assert.ThrowsAsync<Exception>(() => placeOrderHandler.HandleAsync(placeOrderCommand, CancellationToken.None));
         repoMock.Verify(r => r.AddAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWorkMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
         eventPublisherMock.Verify(
             p => p.PublishOrderPlacedAsync(It.IsAny<OrderPlaced>(), It.IsAny<CancellationToken>()),
             Times.Never);
