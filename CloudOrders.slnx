@@ -11,7 +11,9 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CloudOrders.UnitTests/CloudOrders.UnitTests.csproj" />
+    <Project Path="tests/CloudOrders.IntegrationTests/CloudOrders.IntegrationTests.csproj" />
   </Folder>
   <Project Path="Inventory/Inventory.csproj" />
   <Project Path="Inventory/Inventory.Tests/Inventory.Tests.csproj" />
+  <Project Path="Inventory/Inventory.IntegrationTests/Inventory.IntegrationTests.csproj" />
 </Solution>

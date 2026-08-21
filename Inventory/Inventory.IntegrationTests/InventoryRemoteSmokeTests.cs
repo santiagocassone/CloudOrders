@@ -1,10 +1,11 @@
 using System.Net;
 
-namespace Inventory.Tests;
+namespace Inventory.IntegrationTests;
 
 public sealed class InventoryRemoteSmokeTests
 {
     [Fact]
+    [Trait("Category", "Prod")]
     public async Task GetRoot_ReturnsOkFromConfiguredAzureEndpoint()
     {
         var baseUrl = Environment.GetEnvironmentVariable("INVENTORY_BASE_URL");

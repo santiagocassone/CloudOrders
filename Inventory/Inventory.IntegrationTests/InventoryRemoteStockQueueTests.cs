@@ -3,11 +3,12 @@ using Inventory.Application;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace Inventory.Tests;
+namespace Inventory.IntegrationTests;
 
 public sealed class InventoryRemoteStockQueueTests
 {
     [Fact]
+    [Trait("Category", "Prod")]
     public async Task PostReserve_ToRemoteAzureInventory_PublishesStockReservedToStockResultsQueue()
     {
         var baseUrl = Environment.GetEnvironmentVariable("INVENTORY_BASE_URL");
@@ -38,12 +39,17 @@ public sealed class InventoryRemoteStockQueueTests
 
         var deadline = DateTimeOffset.UtcNow.AddMinutes(2);
         ServiceBusReceivedMessage? found = null;
+        long? sequenceNumber = null;
 
         while (DateTimeOffset.UtcNow < deadline && found is null)
         {
-            var batch = await receiver.ReceiveMessagesAsync(10, TimeSpan.FromSeconds(5));
+            IReadOnlyList<ServiceBusReceivedMessage> batch = sequenceNumber is null
+                ? await receiver.PeekMessagesAsync(25, cancellationToken: CancellationToken.None)
+                : await receiver.PeekMessagesAsync(25, sequenceNumber.Value, CancellationToken.None);
+
             if (batch.Count == 0)
             {
+                await Task.Delay(TimeSpan.FromSeconds(2));
                 continue;
             }
 
@@ -59,8 +65,12 @@ public sealed class InventoryRemoteStockQueueTests
                     found = message;
                     break;
                 }
+            }
 
-                await receiver.AbandonMessageAsync(message);
+            if (found is null)
+            {
+                sequenceNumber = batch[^1].SequenceNumber + 1;
+                await Task.Delay(TimeSpan.FromSeconds(2));
             }
         }
 
@@ -69,7 +79,5 @@ public sealed class InventoryRemoteStockQueueTests
         Assert.NotNull(payload);
         Assert.Equal(orderId, payload.OrderId);
         Assert.Equal(orderId.ToString(), found.CorrelationId);
-
-        await receiver.CompleteMessageAsync(found);
     }
 }

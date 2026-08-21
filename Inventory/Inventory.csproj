@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -13,8 +13,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Inventory.Tests\**" />
+    <Compile Remove="Inventory.IntegrationTests\**" />
     <Content Remove="Inventory.Tests\**" />
+    <Content Remove="Inventory.IntegrationTests\**" />
     <EmbeddedResource Remove="Inventory.Tests\**" />
+    <EmbeddedResource Remove="Inventory.IntegrationTests\**" />
     <None Remove="Inventory.Tests\**" />
+    <None Remove="Inventory.IntegrationTests\**" />
   </ItemGroup>
 </Project>
