@@ -5,5 +5,5 @@
     public string FullyQualifiedNamespace { get; init; } = string.Empty;
     public string OrderPlacedQueue { get; init; } = string.Empty;
     public string StockResultsQueue { get; init; } = string.Empty;
-    public int StockResultsMaxConcurrentCalls { get; init; } = 4;
+    public int StockResultsMaxConcurrentCalls { get; init; } = 32;
 }

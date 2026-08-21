@@ -87,6 +87,8 @@ builder.Services.AddOptions<ServiceBusOptions>()
         "ServiceBus:OrderPlacedQueue is required.")
     .Validate(options => !string.IsNullOrWhiteSpace(options.StockResultsQueue),
         "ServiceBus:StockResultsQueue is required.")
+    .Validate(options => options.StockResultsMaxConcurrentCalls > 0,
+        "ServiceBus:StockResultsMaxConcurrentCalls must be greater than 0.")
     .ValidateOnStart();
 
 builder.Services.AddSingleton<ServiceBusClient>(sp =>

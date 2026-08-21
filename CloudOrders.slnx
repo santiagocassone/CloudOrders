@@ -13,6 +13,9 @@
     <Project Path="tests/CloudOrders.IntegrationTests/CloudOrders.IntegrationTests.csproj" />
     <Project Path="tests/CloudOrders.UnitTests/CloudOrders.UnitTests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/CloudOrders.LoadTests/CloudOrders.LoadTests.csproj" />
+  </Folder>
   <Project Path="Inventory/Inventory.csproj" />
   <Project Path="Inventory/Inventory.Tests/Inventory.Tests.csproj" />
 </Solution>
